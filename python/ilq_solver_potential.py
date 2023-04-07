@@ -44,10 +44,11 @@ import matplotlib.pyplot as plt
 from player_cost import PlayerCost
 from reference_deviation_cost import ReferenceDeviationCost
 from solve_lq_game import solve_lq_game
+from solve_lq_game import solve_lq_game_potential
 from visualizer import Visualizer
 from logger import Logger
 
-class ILQSolver(object):
+class ILQSolver_Potential(object):
     def __init__(self,
                  dynamics,
                  player_costs,
@@ -193,7 +194,7 @@ class ILQSolver(object):
                         Rs[ii][jj].append(R[jj])
 
             # (4) Compute feedback Nash equilibrium of the resulting LQ game.
-            Ps, alphas = solve_lq_game(As, Bs, Qs, ls, Rs)
+            Ps, alphas = solve_lq_game_potential(As, Bs, Qs, ls, Rs)
 
             # Accumulate total costs for both players.
             total_costs = [sum(costis).item() for costis in costs]
@@ -239,15 +240,18 @@ class ILQSolver(object):
                 current_u = [np.zeros((ui_dim, 1))
                              for ui_dim in self._dynamics._u_dims]
 
+                #current_u = [np.zeros((ui_dim, 1))
+                #             for ui_dim in self._dynamics._u_dim]
+
             feedback = lambda x, u_ref, x_ref, P, alpha : \
                        u_ref - P @ (x - x_ref) - self._alpha_scaling * alpha
             u = [feedback(xs[k], current_u[ii], current_x,
                           self._Ps[ii][k], self._alphas[ii][k])
                  for ii in range(self._num_players)]
 
-            # Clip u1 and u2.
-#            for ii in range(self._num_players):
-#                u[ii] = self._u_constraints[ii].clip(u[ii])
+           #  Clip u1 and u2.
+           # for ii in range(self._num_players):
+           #     u[ii] = self._u_constraints[ii].clip(u[ii])
 
             for ii in range(self._num_players):
                 us[ii].append(u[ii])

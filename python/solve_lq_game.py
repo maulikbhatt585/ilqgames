@@ -171,3 +171,165 @@ def solve_lq_game(As, Bs, Qs, ls, Rs):
 
     # Return P1s, P2s, alpha1s, alpha2s
     return [list(Pis) for Pis in Ps], [list(alphais) for alphais in alphas]
+
+
+def solve_lq_game_openloop(As, Bs, Qs, ls, Rs):
+    """
+    Solve a time-varying, finite horizon LQ game (finds open-loop Nash strategies for both players).
+    Assumes that dynamics are given by
+           ``` dx_{k+1} = A_k dx_k + \sum_i Bs[i]_k du[i]_k ```
+
+    NOTE: Bs, Qs, ls, R1s, R2s are all lists of lists of matrices.
+    NOTE: all indices of inner lists correspond to the "current time" k except
+    for those of Q1 and Q2, which correspond to the "next time" k+1. That is,
+    the kth entry of Q1s is the state cost corresponding to time step k+1. This
+    makes sense because there is no point assigning any state cost to the
+    initial state x_0.
+    Returns Ps, alphas
+
+    :param As: A matrices
+    :type As: [np.array]
+    :param Bs: list of list of B matrices (1 list for each player)
+    :type Bs: [[np.array]]
+    :param Qs: list of list of quadratic state costs (1 list for each player)
+    :type Qs: [[np.array]]
+    :param ls: list of list of linear state costs (1 list for each player)
+    :type ls: [[np.array]]
+    :param Rs: list of list of lists of quadratic control costs. Each player
+        (outer list) has a list of lists of costs due to other players' control,
+        i.e. Rs[i][j][k] is R_{ij}(k) from Basar and Olsder.
+    :type Rs: [[[np.array]]]
+    :return: gain matrices P[i]_k and feedforward term alpha[i]_k for each
+        player, i.e. (u[i]_k = uref[i]_k -P[i]_k dx_k - alpha[i]_k).
+        Returned as a list of lists P, alpha (1 list for each player)
+    :rtype: [[np.array]], [[np.array]]
+    """
+    # Unpack horizon and number of players.
+    horizon = len(As) - 1
+    num_players = len(Bs)
+
+    # Cache dimensions of state and controls for each player.
+    x_dim = As[0].shape[0]
+    u_dims = [Bis[0].shape[1] for Bis in Bs]
+
+    # Note: notation and variable naming closely follows that introduced in
+    # the "Preliminary Notation for Corollary 6.1" section, which may be found
+    # on pp. 279 of Basar and Olsder.
+    # NOTE: we will assume that `c` from Basar and Olsder is always `0`.
+
+    # Recursive computation of all intermediate and final variables.
+    # Use deques for efficient prepending.
+    Ms = [deque([Qis[-1]]) for Qis in Qs]
+    #ms = [deque([np.zeros((x_dim,1))]) for Qis in Qs]
+    ms = [deque([lis[-1]]) for lis in ls]
+    Lambdas = deque()
+    xis = [deque() for ii in range(num_players)]
+    Ps = [deque() for ii in range(num_players)]
+    etas = deque()
+    alphas = [deque() for ii in range(num_players)]
+    for k in range(horizon, -1, -1):
+        # Unpack all relevant variables.
+        A = As[k]
+        B = [Bis[k] for Bis in Bs]
+        Q = [Qis[k] for Qis in Qs]
+        l = [lis[k] for lis in ls]
+        R = [[Rijs[k] for Rijs in Ris] for Ris in Rs]
+
+        M = [Mis[0] for Mis in Ms]
+        m = [mis[0] for mis in ms]
+
+        if k == horizon - 1:
+            print((M[ii] for ii in range(num_players)))
+
+        Lambda = np.eye(x_dim) + sum([B[ii] @ np.linalg.inv(R[ii][ii]) @ B[ii].T @ M[ii] for ii in range(num_players)])
+
+        for ii in range(num_players):
+            Ms[ii].appendleft(Q[ii] + A.T @ M[ii] @ np.linalg.inv(Lambda) @ A)
+
+        eta = -sum([B[ii] @ np.linalg.inv(R[ii][ii]) @ B[ii].T @ m[ii] for ii in range(num_players)])
+        etas.appendleft(eta)
+
+        for ii in range(num_players):
+            xis[ii].appendleft(M[ii] @ np.linalg.inv(Lambda) @ eta + m[ii])
+
+        for ii in range(num_players):
+            ms[ii].appendleft(A.T@(m[ii] + M[ii]@np.linalg.inv(Lambda)@eta))
+
+        for ii in range(num_players):
+            Ps[ii].appendleft(np.linalg.inv(R[ii][ii]) @ B[ii].T @ M[ii] @ np.linalg.inv(Lambda) @ A)
+            alphas[ii].appendleft(np.linalg.inv(R[ii][ii]) @ B[ii].T @(M[ii] @ np.linalg.inv(Lambda) @ eta + m[ii]))
+
+    # Return P1s, P2s, alpha1s, alpha2s
+    return [list(Pis) for Pis in Ps], [list(alphais) for alphais in alphas]
+
+
+def solve_lq_game_potential(As, Bs, Qs, ls, Rs):
+    """
+    Solve a time-varying, finite horizon LQ game (finds closed-loop Nash
+    feedback strategies for both players).
+    Assumes that dynamics are given by
+           ``` dx_{k+1} = A_k dx_k + \sum_i Bs[i]_k du[i]_k ```
+
+    NOTE: Bs, Qs, ls, R1s, R2s are all lists of lists of matrices.
+    NOTE: all indices of inner lists correspond to the "current time" k except
+    for those of Q1 and Q2, which correspond to the "next time" k+1. That is,
+    the kth entry of Q1s is the state cost corresponding to time step k+1. This
+    makes sense because there is no point assigning any state cost to the
+    initial state x_0.
+    Returns Ps, alphas
+
+    :param As: A matrices
+    :type As: [np.array]
+    :param Bs: list of list of B matrices (1 list for each player)
+    :type Bs: [[np.array]]
+    :param Qs: list of list of quadratic state costs (1 list for each player)
+    :type Qs: [[np.array]]
+    :param ls: list of list of linear state costs (1 list for each player)
+    :type ls: [[np.array]]
+    :param Rs: list of list of lists of quadratic control costs. Each player
+        (outer list) has a list of lists of costs due to other players' control,
+        i.e. Rs[i][j][k] is R_{ij}(k) from Basar and Olsder.
+    :type Rs: [[[np.array]]]
+    :return: gain matrices P[i]_k and feedforward term alpha[i]_k for each
+        player, i.e. (u[i]_k = uref[i]_k -P[i]_k dx_k - alpha[i]_k).
+        Returned as a list of lists P, alpha (1 list for each player)
+    :rtype: [[np.array]], [[np.array]]
+    """
+    # Unpack horizon and number of players.
+    horizon = len(As) - 1
+    num_players = len(Bs)
+
+    # Cache dimensions of state and controls for each player.
+    x_dim = As[0].shape[0]
+    u_dims = [Bis[0].shape[1] for Bis in Bs]
+
+    # Note: notation and variable naming closely follows that introduced in
+    # the "Preliminary Notation for Corollary 6.1" section, which may be found
+    # on pp. 279 of Basar and Olsder.
+    # NOTE: we will assume that `c` from Basar and Olsder is always `0`.
+
+    # Recursive computation of all intermediate and final variables.
+    # Use deques for efficient prepending.
+    Zs = [deque([Qis[-1]]) for Qis in Qs]
+    zs = [deque([lis[-1]]) for lis in ls]
+    Ps = [deque() for ii in range(num_players)]
+    alphas = [deque() for ii in range(num_players)]
+    for k in range(horizon, -1, -1):
+        # Unpack all relevant variables.
+        A = As[k]
+        B = [Bis[k] for Bis in Bs]
+        Q = [0.5*Qis[k] for Qis in Qs]
+        l = [lis[k] for lis in ls]
+        R = [[0.5*Rijs[k] for Rijs in Ris] for Ris in Rs]
+
+        Z = [Zis[0] for Zis in Zs]
+        z = [zis[0] for zis in zs]
+
+        for ii in range(num_players):
+            Zs[ii].appendleft( Q[ii] + A.T@Z[ii]@A - (B[ii].T@Z[ii]@A).T@np.linalg.inv(R[ii][ii] + B[ii].T@Z[ii]@B[ii])@(B[ii].T@Z[ii]@A) )
+            zs[ii].appendleft( -(B[ii].T@Z[ii]@A).T@np.linalg.inv(R[ii][ii] + B[ii].T@Z[ii]@B[ii])@(B[ii].T@z[ii]) + l[ii] + A.T@z[ii])
+            Ps[ii].appendleft( np.linalg.inv(R[ii][ii] + B[ii].T@Z[ii]@B[ii])@(B[ii].T@Z[ii]@A))
+            alphas[ii].appendleft( 0.5*np.linalg.inv(R[ii][ii] + B[ii].T@Z[ii]@B[ii])@(B[ii].T@z[ii]) )
+
+    # Return P1s, P2s, alpha1s, alpha2s
+    return [list(Pis) for Pis in Ps], [list(alphais) for alphais in alphas]

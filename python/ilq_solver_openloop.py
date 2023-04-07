@@ -44,10 +44,11 @@ import matplotlib.pyplot as plt
 from player_cost import PlayerCost
 from reference_deviation_cost import ReferenceDeviationCost
 from solve_lq_game import solve_lq_game
+from solve_lq_game import solve_lq_game_openloop
 from visualizer import Visualizer
 from logger import Logger
 
-class ILQSolver(object):
+class ILQSolver_openloop(object):
     def __init__(self,
                  dynamics,
                  player_costs,
@@ -193,7 +194,7 @@ class ILQSolver(object):
                         Rs[ii][jj].append(R[jj])
 
             # (4) Compute feedback Nash equilibrium of the resulting LQ game.
-            Ps, alphas = solve_lq_game(As, Bs, Qs, ls, Rs)
+            Ps, alphas = solve_lq_game_openloop(As, Bs, Qs, ls, Rs)
 
             # Accumulate total costs for both players.
             total_costs = [sum(costis).item() for costis in costs]
@@ -212,9 +213,6 @@ class ILQSolver(object):
 
             # (5) Linesearch.
             self._linesearch()
-            if iteration>200:
-                return xs, us, costs
-                break
             iteration += 1
 
     def _compute_operating_point(self):
