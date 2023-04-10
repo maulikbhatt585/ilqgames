@@ -198,7 +198,7 @@ class ILQSolver_Potential(object):
 
             # Accumulate total costs for both players.
             total_costs = [sum(costis).item() for costis in costs]
-            print("Total cost for all players: ", total_costs)
+            #print("Total cost for all players: ", total_costs)
 
             # Log everything.
             if self._logger is not None:
