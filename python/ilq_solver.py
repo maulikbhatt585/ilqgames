@@ -217,6 +217,8 @@ class ILQSolver(object):
                 break
             iteration += 1
 
+        return xs, us, costs
+
     def _compute_operating_point(self):
         """
         Compute current operating point by propagating through dynamics.

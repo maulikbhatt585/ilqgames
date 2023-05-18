@@ -48,7 +48,7 @@ from solve_lq_game import solve_lq_game_openloop
 from visualizer import Visualizer
 from logger import Logger
 
-class ILQSolver_openloop(object):
+class ILQSolver_Openloop(object):
     def __init__(self,
                  dynamics,
                  player_costs,
@@ -213,7 +213,12 @@ class ILQSolver_openloop(object):
 
             # (5) Linesearch.
             self._linesearch()
+            if iteration>200:
+                return xs, us, costs
+                break
             iteration += 1
+
+        return xs, us, costs
 
     def _compute_operating_point(self):
         """
