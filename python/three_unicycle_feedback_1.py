@@ -162,27 +162,27 @@ unicycle3_a_cost = QuadraticCost(1, 0.0, "unicycle3_a")
 
 UNICYCLE_PROXIMITY_THRESHOLD = 2.0
 
-coef = 1
+coefs = [1.5,2,1]
 
 unicycle1_proximity_cost = ProximityCost_1(
      unicycle1_position_indices_in_product_state,
      [unicycle2_position_indices_in_product_state,
      unicycle3_position_indices_in_product_state],
-    UNICYCLE_PROXIMITY_THRESHOLD, coef,
+    UNICYCLE_PROXIMITY_THRESHOLD, coefs[0],
     "unicycle1_proximity")
 
 unicycle2_proximity_cost = ProximityCost_1(
      unicycle2_position_indices_in_product_state,
      [unicycle1_position_indices_in_product_state,
      unicycle3_position_indices_in_product_state],
-    UNICYCLE_PROXIMITY_THRESHOLD, coef,
+    UNICYCLE_PROXIMITY_THRESHOLD, coefs[1],
     "unicycle2_proximity")
 
 unicycle3_proximity_cost = ProximityCost_1(
      unicycle3_position_indices_in_product_state,
      [unicycle2_position_indices_in_product_state,
      unicycle1_position_indices_in_product_state],
-    UNICYCLE_PROXIMITY_THRESHOLD, coef,
+    UNICYCLE_PROXIMITY_THRESHOLD, coefs[2],
     "unicycle3_proximity")
 
 unicycle1_cost = PlayerCost()
@@ -247,4 +247,28 @@ solver = ILQSolver(dynamics,
                    visualizer,
                    None)
 
-solver.run()
+save_path = './data/three_unicycle_feedback_1/'
+
+if not os.path.exists(save_path):
+    os.makedirs(save_path)
+
+xs, us, costs = solver.run()
+
+x = np.zeros([12, HORIZON_STEPS])
+u = np.zeros([6, HORIZON_STEPS])
+
+for i in range(len(xs)):
+    x[:,i] = xs[i].ravel()
+    u[0:2,i] = us[0][i].ravel()
+    u[2:4,i] = us[1][i].ravel()
+    u[4:6,i] = us[2][i].ravel()
+
+np.savetxt("./data/three_unicycle_feedback_1/xs_three_unicycle_feedback_1.csv",
+           x,
+           delimiter =", ",
+           fmt ='% s')
+
+np.savetxt("./data/three_unicycle_feedback_1/us_three_unicycle_feedback_1.csv",
+           u,
+           delimiter =", ",
+           fmt ='% s')

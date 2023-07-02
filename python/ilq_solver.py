@@ -212,7 +212,7 @@ class ILQSolver(object):
 
             # (5) Linesearch.
             self._linesearch()
-            if iteration>200:
+            if iteration>300:
                 return xs, us, costs
                 break
             iteration += 1

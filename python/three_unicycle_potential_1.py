@@ -160,7 +160,9 @@ unicycle3_a_cost = QuadraticCost(5, 0.0, "unicycle3_a")
 
 UNICYCLE_PROXIMITY_THRESHOLD = 2.0
 
-coefs = [1.5,2,1]
+#coefs = [1.5,2,1]
+
+coefs = [10,2,1]
 
 unicycle_proximity_cost = ProximityCost_Potential_1(
     [unicycle1_position_indices_in_product_state,
