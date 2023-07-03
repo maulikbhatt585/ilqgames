@@ -197,7 +197,7 @@ class ILQSolver(object):
 
             # Accumulate total costs for both players.
             total_costs = [sum(costis).item() for costis in costs]
-            print("Total cost for all players: ", total_costs)
+            # print("Total cost for all players: ", total_costs)
 
             # Log everything.
             if self._logger is not None:
@@ -212,7 +212,7 @@ class ILQSolver(object):
 
             # (5) Linesearch.
             self._linesearch()
-            if iteration>300:
+            if iteration>210:
                 return xs, us, costs
                 break
             iteration += 1
