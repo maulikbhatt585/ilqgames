@@ -244,7 +244,7 @@ solver = ILQSolver(dynamics,
                    0.1,
                    None,
                    logger,
-                   visualizer,
+                   None,
                    None)
 
 save_path = './data/three_unicycle_feedback_1/'
@@ -252,7 +252,7 @@ save_path = './data/three_unicycle_feedback_1/'
 if not os.path.exists(save_path):
     os.makedirs(save_path)
 
-xs, us, costs = solver.run()
+xs, us, costs, solve_lq_times = solver.run()
 
 x = np.zeros([12, HORIZON_STEPS])
 u = np.zeros([6, HORIZON_STEPS])
@@ -270,5 +270,10 @@ np.savetxt("./data/three_unicycle_feedback_1/xs_three_unicycle_feedback_1.csv",
 
 np.savetxt("./data/three_unicycle_feedback_1/us_three_unicycle_feedback_1.csv",
            u,
+           delimiter =", ",
+           fmt ='% s')
+
+np.savetxt("./data/three_unicycle_feedback_1/solve_lq_times_feedback_1.csv",
+           solve_lq_times,
            delimiter =", ",
            fmt ='% s')

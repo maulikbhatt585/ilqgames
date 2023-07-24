@@ -40,6 +40,7 @@ Author(s): David Fridovich-Keil ( dfk@eecs.berkeley.edu )
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
+import time
 
 from player_cost import PlayerCost
 from reference_deviation_cost import ReferenceDeviationCost
@@ -119,7 +120,10 @@ class ILQSolver_Potential(object):
         """ Run the algorithm for the specified parameters. """
         iteration = 0
 
-        while not self._is_converged():
+        solve_lq_times = np.array([])
+
+        #while not self._is_converged():
+        while True:
             # (1) Compute current operating point and update last one.
             xs, us, costs = self._compute_operating_point()
             self._last_operating_point = self._current_operating_point
@@ -193,8 +197,14 @@ class ILQSolver_Potential(object):
                     for jj in range(self._num_players):
                         Rs[ii][jj].append(R[jj])
 
+            time_s = time.perf_counter()
+
             # (4) Compute feedback Nash equilibrium of the resulting LQ game.
             Ps, alphas = solve_lq_game_potential(As, Bs, Qs, ls, Rs)
+
+            time_e = time.perf_counter()
+
+            solve_lq_times = np.append(solve_lq_times, time_e - time_s)
 
             # Accumulate total costs for both players.
             total_costs = [sum(costis).item() for costis in costs]
@@ -214,7 +224,7 @@ class ILQSolver_Potential(object):
             # (5) Linesearch.
             self._linesearch()
             if iteration>200:
-                return xs, us, costs
+                return xs, us, costs, solve_lq_times
                 break
             iteration += 1
 

@@ -41,6 +41,7 @@ Author(s): David Fridovich-Keil ( dfk@eecs.berkeley.edu )
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 from unicycle_4d import Unicycle4D
 from three_unicycle_4d import Three_Unicycle4D
@@ -160,9 +161,9 @@ unicycle3_a_cost = QuadraticCost(5, 0.0, "unicycle3_a")
 
 UNICYCLE_PROXIMITY_THRESHOLD = 2.0
 
-#coefs = [1.5,2,1]
+coefs = [1.5,2,1]
 
-coefs = [10,2,1]
+#coefs = [10,2,1]
 
 unicycle_proximity_cost = ProximityCost_Potential_1(
     [unicycle1_position_indices_in_product_state,
@@ -232,8 +233,8 @@ solver = ILQSolver_Potential(dynamics,
                    [three_unicycle_alphas],
                    0.1,
                    None,
-                   logger,
-                   visualizer,
+                   None,
+                   None,
                    None)
 
 save_path = './data/three_unicycle_potential_1/'
@@ -241,7 +242,11 @@ save_path = './data/three_unicycle_potential_1/'
 if not os.path.exists(save_path):
     os.makedirs(save_path)
 
-xs, us, costs = solver.run()
+time_start = time.perf_counter()
+
+xs, us, costs, solve_lq_times = solver.run()
+
+time_end = time.perf_counter()
 
 x = np.zeros([12, HORIZON_STEPS])
 u = np.zeros([6, HORIZON_STEPS])
@@ -257,5 +262,10 @@ np.savetxt("./data/three_unicycle_potential_1/xs_three_unicycle_potential_1.csv"
 
 np.savetxt("./data/three_unicycle_potential_1/us_three_unicycle_potential_1.csv",
            u,
+           delimiter =", ",
+           fmt ='% s')
+
+np.savetxt("./data/three_unicycle_potential_1/solve_lq_times_potential_1.csv",
+           solve_lq_times,
            delimiter =", ",
            fmt ='% s')
