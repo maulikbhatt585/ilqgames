@@ -107,6 +107,7 @@ n_mc = 200
 # uni_3_array = np.random.multivariate_normal(unicycle3_x0[:,0], 0.01*np.eye(4), size = n_mc)
 
 solve_time = np.zeros(n_mc)
+solve_time_loc = np.zeros(n_mc)
 
 for n in range(n_mc):
 
@@ -278,13 +279,15 @@ for n in range(n_mc):
         
     time_start = time.perf_counter()
 
-    xs, us, costs = solver.run()
+    xs, us, costs, solve_lq_times = solver.run()
     
     time_end = time.perf_counter()
     
     solve_time[n] = time_end - time_start
 
-    print("Solve time for this iteration is: ", solve_time[n],"s")
+    solve_time_loc[n] = solve_lq_times.mean()
+
+    print("Local solve time for this iteration is: ", solve_time_loc[n],"s")
 
     x = np.zeros([12, HORIZON_STEPS])
     u = np.zeros([6, HORIZON_STEPS])
@@ -302,5 +305,12 @@ for n in range(n_mc):
     #            u,
     #            delimiter =", ",
     #            fmt ='% s')
+
+    np.savetxt("./data/three_unicycle_feedback_mc/solve_lq_times_feedback"+str(n)+".csv",
+           solve_lq_times,
+           delimiter =", ",
+           fmt ='% s')
  
 np.savetxt("./data/three_unicycle_feedback_mc/solve_time.csv", solve_time, delimiter =", ", fmt ='% s')
+
+np.savetxt("./data/three_unicycle_feedback_mc/solve_time_loc.csv", solve_time_loc, delimiter =", ", fmt ='% s')
